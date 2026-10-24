@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fold the Paper: Vertically Opposite Angles</title>
+<style>
+:root{--bg:#f6f8fc;--card:#fff;--text:#1d2433;--muted:#5d6678;--a:#2563eb;--b:#ea580c;--ink:#1e293b;--paper:#fffdf5;--edge:#94a3b8;--gray:#94a3b8;--ok:#15803d;--okbg:#dcfce7;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1420;--card:#1a2132;--text:#eef1f7;--muted:#a3adc2;--a:#60a5fa;--b:#fb923c;--ink:#e2e8f0;--paper:#3a4358;--edge:#64748b;--gray:#64748b;--ok:#86efac;--okbg:#14351f}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Trebuchet MS",system-ui,sans-serif;display:flex;justify-content:center}
+main{width:100%;max-width:760px;padding:16px}
+h1{font-size:1.4rem;margin:4px 0}
+p.sub{margin:0 0 12px;color:var(--muted)}
+.card{background:var(--card);border-radius:16px;padding:10px;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+svg{width:100%;height:auto;display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;align-items:center}
+button{border:2px solid var(--muted);background:var(--card);color:var(--text);border-radius:999px;padding:8px 14px;font-size:.95rem;cursor:pointer}
+button.on{border-color:var(--a);background:var(--a);color:#fff}
+#fold{border-color:var(--b);background:var(--b);color:#fff;font-size:1.05rem;font-weight:bold;padding:10px 20px}
+.read{display:flex;gap:10px;flex-wrap:wrap}
+.chip{flex:1;min-width:140px;border-radius:12px;padding:10px;background:var(--card);font-size:1.1rem;font-weight:bold}
+.chip.a{border-left:6px solid var(--a)}.chip.b{border-left:6px solid var(--b)}
+#msg{margin-top:12px;padding:12px;border-radius:12px;background:var(--card);font-size:1.05rem;min-height:48px}
+#msg.ok{background:var(--okbg);color:var(--ok);font-weight:bold}
+label{color:var(--muted);font-size:.95rem}
+</style>
+</head>
+<body>
+<main>
+<h1>📄 Fold the Paper</h1>
+<p class="sub">Two lines cross on a sheet of paper. Fold it along the faint dotted line and see what happens to the angles across from each other.</p>
+<div class="card"><svg id="s" viewBox="0 0 700 440" aria-label="Paper with two intersecting lines that folds"></svg></div>
+<div class="row">
+<button id="fold">Fold the paper</button>
+<button id="p0" class="on">Left &amp; right angles</button>
+<button id="p1">Top &amp; bottom angles</button>
+<label>Angle between lines <input id="al" type="range" min="30" max="150" value="60"></label>
+</div>
+<div class="read">
+<div class="chip a">Blue angle: <span id="va"></span>°</div>
+<div class="chip b">Orange angle: <span id="vb"></span>°</div>
+</div>
+<div id="msg"></div>
+</main>
+<script>
+const NS="http://www.w3.org/2000/svg",svg=document.getElementById("s");
+const W=190,H=130,RW=70,cy=Math.cos(35*Math.PI/180),sy=Math.sin(35*Math.PI/180),ce=Math.cos(52*Math.PI/180),se=Math.sin(52*Math.PI/180),SC=1.25;
+let pair=0,alpha=60,f=0,target=0,last=0;
+const css=v=>"var(--"+v+")";
+const rd=d=>d*Math.PI/180;
+function el(t,at){const e=document.createElementNS(NS,t);for(const k in at)e.setAttribute(k,at[k]);svg.appendChild(e);return e}
+function proj(X,Y,Z){const x1=X*cy-Y*sy,y1=X*sy+Y*cy;return[350+SC*x1,270-SC*(Z*ce+y1*se)]}
+function ease(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
+function setup(){
+ const bc=pair?90:0,oc=bc+180;
+ return{m:[Math.cos(rd(oc)),Math.sin(rd(oc))],bc,oc}}
+function clip(poly,m,keepMoving){
+ const out=[],s=keepMoving?1:-1,val=p=>s*(p[0]*m[0]+p[1]*m[1]);
+ for(let i=0;i<poly.length;i++){
+  const a=poly[i],b=poly[(i+1)%poly.length],va=val(a),vb=val(b);
+  if(va>=0)out.push(a);
+  if((va>=0)!==(vb>=0)){const t=va/(va-vb);out.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])])}
+ }
+ return out}
+function rayLen(a){const c=Math.abs(Math.cos(rd(a))),s=Math.abs(Math.sin(rd(a)));return Math.min(c>1e-6?W/c:1e9,s>1e-6?H/s:1e9)-4}
+function draw(){
+ svg.innerHTML="";
+ const {m,bc,oc}=setup(),phi=Math.PI*ease(f);
+ const T=(p,mv)=>{if(!mv)return proj(p[0],p[1],0);
+  const d=[-m[1],m[0]],u=p[0]*d[0]+p[1]*d[1],w=p[0]*m[0]+p[1]*m[1];
+  return proj(u*d[0]+w*Math.cos(phi)*m[0],u*d[1]+w*Math.cos(phi)*m[1],w*Math.sin(phi)+(mv&&phi>0?.4:0))};
+ const sideOf=a=>(Math.cos(rd(a))*m[0]+Math.sin(rd(a))*m[1])>0;
+ const path=(pts,mv)=>pts.map((p,i)=>(i?"L":"M")+T(p,mv).map(n=>n.toFixed(1)).join(" ")).join("")+"Z";
+ const rect=[[-W,-H],[W,-H],[W,H],[-W,H]];
+ const hw=c=>(c%180===0)?alpha/2:90-alpha/2;
+ const centers=[0,90,180,270];
+ const wedgePts=c=>{const pts=[[0,0]];for(let a=c-hw(c);a<=c+hw(c)+.01;a+=3)pts.push([RW*Math.cos(rd(a)),RW*Math.sin(rd(a))]);return pts};
+ const rays=[alpha/2,-alpha/2,180-alpha/2,180+alpha/2];
+ const dAng=rd(bc+90);
+ let fq;
+ [false,true].forEach(mv=>{
+  if(!mv&&false)return;
+  const half=clip(rect,m,mv);
+  el("path",{d:path(half,mv),fill:css("paper"),"fill-opacity":mv?.72:1,stroke:"none"});
+  let od="";half.forEach((a,i)=>{const b=half[(i+1)%half.length];
+   if(Math.abs(a[0]*m[0]+a[1]*m[1])<1e-6&&Math.abs(b[0]*m[0]+b[1]*m[1])<1e-6)return;
+   const pa=T(a,mv),pb=T(b,mv);od+="M"+pa[0].toFixed(1)+" "+pa[1].toFixed(1)+"L"+pb[0].toFixed(1)+" "+pb[1].toFixed(1)});
+  el("path",{d:od,fill:"none",stroke:css("edge"),"stroke-width":2,"stroke-linecap":"round"});
+  if(!mv){const L=Math.min(Math.abs(Math.cos(dAng))>1e-6?W/Math.abs(Math.cos(dAng)):1e9,Math.abs(Math.sin(dAng))>1e-6?H/Math.abs(Math.sin(dAng)):1e9)-2;
+   const q=[[-L*Math.cos(dAng),-L*Math.sin(dAng)],[L*Math.cos(dAng),L*Math.sin(dAng)]].map(p=>proj(p[0],p[1],0));
+   fq=q}
+  centers.filter(c=>sideOf(c)===mv).forEach(c=>{
+   const col=c===bc?"a":c===oc?"b":"gray";
+   el("path",{d:path(wedgePts(c),mv),fill:css(col),"fill-opacity":col==="gray"?.25:.6,stroke:css(col),"stroke-width":col==="gray"?1:2.5})});
+  rays.filter(a=>sideOf(a)===mv).forEach(a=>{const L=rayLen(a),p=T([L*Math.cos(rd(a)),L*Math.sin(rd(a))],mv),o=T([0,0],mv);
+   el("line",{x1:o[0],y1:o[1],x2:p[0],y2:p[1],stroke:css("ink"),"stroke-width":4,"stroke-linecap":"round"})});
+ });
+ {const n=Math.round(Math.hypot(fq[1][0]-fq[0][0],fq[1][1]-fq[0][1])/8);for(let i=0;i<=n;i++){const k=i/n;el("circle",{cx:fq[0][0]+(fq[1][0]-fq[0][0])*k,cy:fq[0][1]+(fq[1][1]-fq[0][1])*k,r:1.5,fill:css("muted"),"fill-opacity":.55})}}
+ const o=proj(0,0,0);el("circle",{cx:o[0],cy:o[1],r:4.5,fill:css("ink")});
+ const v=pair?180-alpha:alpha;
+ document.getElementById("va").textContent=v;document.getElementById("vb").textContent=v;
+ const mg=document.getElementById("msg");
+ if(f>=1){mg.className="ok";mg.textContent="The orange angle landed exactly on the blue angle, so they are the same size. Vertically opposite angles are equal! ✅"}
+ else if(f>0){mg.className="";mg.textContent="Folding... watch where the orange angle goes."}
+ else{mg.className="";mg.textContent="The blue and orange angles are across from each other (vertically opposite). The faint dotted line cuts through the crossing point halfway between the other two angles. Press Fold!"}
+}
+function loop(t){
+ const dt=Math.min(.05,(t-last)/1000||0);last=t;
+ if(f!==target){f+=Math.sign(target-f)*dt/1.8;if((target-f)*Math.sign(target-f)<=0)f=target;f=Math.max(0,Math.min(1,f));draw();requestAnimationFrame(loop)}
+}
+const fb=document.getElementById("fold");
+fb.onclick=()=>{target=target?0:1;fb.textContent=target?"Unfold the paper":"Fold the paper";last=performance.now();requestAnimationFrame(loop)};
+[0,1].forEach(i=>document.getElementById("p"+i).onclick=()=>{pair=i;f=0;target=0;fb.textContent="Fold the paper";
+ document.getElementById("p0").classList.toggle("on",i===0);document.getElementById("p1").classList.toggle("on",i===1);draw()});
+document.getElementById("al").oninput=e=>{alpha=+e.target.value;draw()};
+draw();
+</script>
+</body>
+</html>
