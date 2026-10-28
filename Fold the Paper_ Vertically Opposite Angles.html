@@ -72,7 +72,7 @@ function draw(){
  const {m,bc,oc}=setup(),phi=Math.PI*ease(f);
  const T=(p,mv)=>{if(!mv)return proj(p[0],p[1],0);
   const d=[-m[1],m[0]],u=p[0]*d[0]+p[1]*d[1],w=p[0]*m[0]+p[1]*m[1];
-  return proj(u*d[0]+w*Math.cos(phi)*m[0],u*d[1]+w*Math.cos(phi)*m[1],w*Math.sin(phi)+(mv&&phi>0?.4:0))};
+  return proj(u*d[0]+w*Math.cos(phi)*m[0],u*d[1]+w*Math.cos(phi)*m[1],w*Math.sin(phi))};
  const sideOf=a=>(Math.cos(rd(a))*m[0]+Math.sin(rd(a))*m[1])>0;
  const path=(pts,mv)=>pts.map((p,i)=>(i?"L":"M")+T(p,mv).map(n=>n.toFixed(1)).join(" ")).join("")+"Z";
  const rect=[[-W,-H],[W,-H],[W,H],[-W,H]];
@@ -83,9 +83,8 @@ function draw(){
  const dAng=rd(bc+90);
  let fq;
  [false,true].forEach(mv=>{
-  if(!mv&&false)return;
   const half=clip(rect,m,mv);
-  el("path",{d:path(half,mv),fill:css("paper"),"fill-opacity":mv?.72:1,stroke:"none"});
+  el("path",{d:path(half,mv),fill:css("paper"),stroke:"none"});
   let od="";half.forEach((a,i)=>{const b=half[(i+1)%half.length];
    if(Math.abs(a[0]*m[0]+a[1]*m[1])<1e-6&&Math.abs(b[0]*m[0]+b[1]*m[1])<1e-6)return;
    const pa=T(a,mv),pb=T(b,mv);od+="M"+pa[0].toFixed(1)+" "+pa[1].toFixed(1)+"L"+pb[0].toFixed(1)+" "+pb[1].toFixed(1)});
@@ -93,9 +92,12 @@ function draw(){
   if(!mv){const L=Math.min(Math.abs(Math.cos(dAng))>1e-6?W/Math.abs(Math.cos(dAng)):1e9,Math.abs(Math.sin(dAng))>1e-6?H/Math.abs(Math.sin(dAng)):1e9)-2;
    const q=[[-L*Math.cos(dAng),-L*Math.sin(dAng)],[L*Math.cos(dAng),L*Math.sin(dAng)]].map(p=>proj(p[0],p[1],0));
    fq=q}
-  centers.filter(c=>sideOf(c)===mv).forEach(c=>{
+  centers.forEach(c=>{
    const col=c===bc?"a":c===oc?"b":"gray";
-   el("path",{d:path(wedgePts(c),mv),fill:css(col),"fill-opacity":col==="gray"?.25:.6,stroke:css(col),"stroke-width":col==="gray"?1:2.5})});
+   if(col!=="gray"&&sideOf(c)!==mv)return;
+   const pts=clip(wedgePts(c),m,mv);
+   if(pts.length<3)return;
+   el("path",{d:path(pts,mv),fill:css(col),"fill-opacity":col==="gray"?.25:.6,stroke:col==="gray"?"none":css(col),"stroke-width":2.5})});
   rays.filter(a=>sideOf(a)===mv).forEach(a=>{const L=rayLen(a),p=T([L*Math.cos(rd(a)),L*Math.sin(rd(a))],mv),o=T([0,0],mv);
    el("line",{x1:o[0],y1:o[1],x2:p[0],y2:p[1],stroke:css("ink"),"stroke-width":4,"stroke-linecap":"round"})});
  });
